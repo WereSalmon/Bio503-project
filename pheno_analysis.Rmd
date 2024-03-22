@@ -9,6 +9,12 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Hypothesis
+
+(A)	That microbiomes associated with *S. latissima* and *L. hyperborea* share a common functional profile in BC and the UK, respectively.
+(B)	That these functional profiles are the same on the West Coast as in the UK.
+
+
 ## Initialize necessary packages
 
 ```{r, message=FALSE}

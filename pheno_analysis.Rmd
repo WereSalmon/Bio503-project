@@ -356,7 +356,33 @@ Then we can see that there is a total overlap between species assigned dark sulf
 
 ## A preliminary functional profile
 
-Comparing the different functions present in our samples there is strong evidence for the presence of aerobic chemoheterotrophy across sites and samples. There is also some evidence for the presence of dark sulfur oxidation, oxygenic photoautotrophy, fermentation, and predation/parasitism (predatory_or_exoparasitic) at low levels in the UK.
+Comparing the different functions present in our samples there is evidence for the presence of aerobic chemoheterotrophy across sites and samples. There is also some evidence for the presence of dark sulfur oxidation, oxygenic photoautotrophy, fermentation, and predation/parasitism (predatory_or_exoparasitic) at low levels in some cases. We can check this by running a single sample t-test, comparing the frequency of each of these traits to 0. To do this test we will group our data by the kelp and region where the sample was collected.
+
+```{r}
+## first create the comparison groups
+func_table.long$comparison_groups = paste0(func_table.long$genus, ";", func_table.long$Region)
+## initialize the data frame we will store our significance tests in
+sig_vals = data.frame(matrix(ncol=6,nrow=0))
+names(sig_vals) = c("Kelp; Region", "eco_function", "p", "p.signif", "p.adj", "p.adj.signif")
+## create a list of the functions we are interested in
+main.funcs = list("aerobic_chemoheterotrophy", "dark_sulfur_oxidation", "oxygenic_photoautotrophy", "fermentation", "predatory_or_exoparasitic")
+## check if the mean frequency of these functions in each group is significantly different from 0
+for(f in main.funcs){
+  funcdata = subset(func_table.long, eco_function == f)
+  sig.test = funcdata %>%
+    group_by(comparison_groups) %>%
+    t_test(relative_abundance ~ 0) %>%
+    add_significance() %>%
+    adjust_pvalue() %>%
+    add_significance()
+  sig.test = subset(sig.test, select = c("comparison_groups", "p", "p.signif", "p.adj", "p.adj.signif"))
+  sig.test$eco_function = f
+  sig_vals = rbind(sig_vals, sig.test)
+}
+print(sig_vals)
+```
+
+From this we can see that all of these traits are present in at least some samples, giving us an preliminary functional profile for our microbiomes.
 
 <img src = "figures/annotated/aerobic_chemoheterotrophy_by_region.png" alt = "image" width = 450 height = auto> <img src = "figures/annotated/dark_sulfur_oxidation_by_region.png" alt = "image" width = 450 height = auto> <img src = "figures/annotated/oxygenic_photoautotrophy_by_region.png" alt = "image" width = 450 height = auto> <img src = "figures/annotated/fermentation_by_region.png" alt = "image" width = 450 height = auto> <img src = "figures/annotated/predatory_or_exoparasitic_by_region.png" alt = "image" width = 450 height = auto> 
 
@@ -421,12 +447,18 @@ a_chem = subset_taxa(kelp_me_clean, ann_tab$aerobic_chemoheterotrophy>0)
 
 ## dark sulfur oxidation
 ds_ox = subset_taxa(kelp_me_clean, ann_tab$dark_sulfur_oxidation>0)
+## must exclude data collected on Laminaria in BC as these were not significanty different from 0
+ds_ox = subset_samples(ds_ox, genus == "Saccharina" | Region == "UK")
 
 ## fermentation
 ferm = subset_taxa(kelp_me_clean, ann_tab$fermentation>0)
+## must exclude data collected on Laminaria as these were not significanty different from 0
+ferm = subset_samples(ferm, genus != "Laminaria")
 
 ## oxygenic photoautotrophy
 o_pau = subset_taxa(kelp_me_clean, ann_tab$oxygenic_photoautotrophy>0)
+## must exclude data collected in BC as these were not significanty different from 0
+o_pau = subset_samples(o_pau, Region != "BC")
 
 ## predatory or exoparasitic
 poe = subset_taxa(kelp_me_clean, ann_tab$predatory_or_exoparasitic>0)
@@ -459,7 +491,7 @@ dephyloseq = function(phylo_obj){
   output = mot
 }
 
-a_chem = tax_glom(a_chem, taxrank = "genus")
+a_chem = tax_glom(a_chem, taxrank = "species")
 ## calculate the number of reads in each sample. This is important for relative abundance calculations later
 a_chem@sam_data$read_depth = sample_sums(a_chem)
 ## rename "genus" and "species" to specify that they refer to the kelp
@@ -474,10 +506,10 @@ a_chem.df = dephyloseq(a_chem)
 ## add the relative abundance of each taxa to our dataframe
 a_chem.df$relative_abundance = as.numeric(a_chem.df$asv_abundance)/as.numeric(a_chem.df$read_depth)
 ## now add the names for each taxa and comparison group in our plots
-a_chem.df$plot_names = paste0(a_chem.df$order, ";", a_chem.df$genus)
+a_chem.df$plot_names = paste0(a_chem.df$genus, ";", a_chem.df$species)
 a_chem.df$comparison_names = paste0(a_chem.df$genus_kelp, ";", a_chem.df$Region)
 
-ds_ox = tax_glom(ds_ox, taxrank = "genus")
+ds_ox = tax_glom(ds_ox, taxrank = "species")
 ## calculate the number of reads in each sample. This is important for relative abundance calculations later
 ds_ox@sam_data$read_depth = sample_sums(ds_ox)
 ## rename "genus" and "species" to specify that they refer to the kelp
@@ -492,11 +524,11 @@ ds_ox.df = dephyloseq(ds_ox)
 ## add the relative abundance of each taxa to our dataframe
 ds_ox.df$relative_abundance = as.numeric(ds_ox.df$asv_abundance)/as.numeric(ds_ox.df$read_depth)
 ## now add the names for each taxa and comparison group in our plots
-ds_ox.df$plot_names = paste0(ds_ox.df$order, ";", ds_ox.df$genus)
+ds_ox.df$plot_names = paste0(ds_ox.df$genus, ";", ds_ox.df$species)
 ds_ox.df$comparison_names = paste0(ds_ox.df$genus_kelp, ";", ds_ox.df$Region)
 
 
-ferm = tax_glom(ferm, taxrank = "genus")
+ferm = tax_glom(ferm, taxrank = "species")
 ## calculate the number of reads in each sample. This is important for relative abundance calculations later
 ferm@sam_data$read_depth = sample_sums(ferm)
 ## rename "genus" and "species" to specify that they refer to the kelp
@@ -511,11 +543,11 @@ ferm.df = dephyloseq(ferm)
 ## add the relative abundance of each taxa to our dataframe
 ferm.df$relative_abundance = as.numeric(ferm.df$asv_abundance)/as.numeric(ferm.df$read_depth)
 ## now add the names for each taxa and comparison group in our plots
-ferm.df$plot_names = paste0(ferm.df$order, ";", ferm.df$genus)
+ferm.df$plot_names = paste0(ferm.df$genus, ";", ferm.df$species)
 ferm.df$comparison_names = paste0(ferm.df$genus_kelp, ";", ferm.df$Region)
 
 
-o_pau = tax_glom(o_pau, taxrank = "genus")
+o_pau = tax_glom(o_pau, taxrank = "species")
 ## calculate the number of reads in each sample. This is important for relative abundance calculations later
 o_pau@sam_data$read_depth = sample_sums(o_pau)
 ## rename "genus" and "species" to specify that they refer to the kelp
@@ -530,11 +562,11 @@ o_pau.df = dephyloseq(o_pau)
 ## add the relative abundance of each taxa to our dataframe
 o_pau.df$relative_abundance = as.numeric(o_pau.df$asv_abundance)/as.numeric(o_pau.df$read_depth)
 ## now add the names for each taxa and comparison group in our plots
-o_pau.df$plot_names = paste0(o_pau.df$order, ";", o_pau.df$genus)
+o_pau.df$plot_names = paste0(o_pau.df$genus, ";", o_pau.df$species)
 o_pau.df$comparison_names = paste0(o_pau.df$genus_kelp, ";", o_pau.df$Region)
 
 
-poe = tax_glom(poe, taxrank = "genus")
+poe = tax_glom(poe, taxrank = "species")
 ## calculate the number of reads in each sample. This is important for relative abundance calculations later
 poe@sam_data$read_depth = sample_sums(poe)
 ## rename "genus" and "species" to specify that they refer to the kelp
@@ -549,7 +581,7 @@ poe.df = dephyloseq(poe)
 ## add the relative abundance of each taxa to our dataframe
 poe.df$relative_abundance = as.numeric(poe.df$asv_abundance)/as.numeric(poe.df$read_depth)
 ## now add the names for each taxa and comparison group in our plots
-poe.df$plot_names = paste0(poe.df$order, ";", poe.df$genus)
+poe.df$plot_names = paste0(poe.df$genus, ";", poe.df$species)
 poe.df$comparison_names = paste0(poe.df$genus_kelp, ";", poe.df$Region)
 
 
@@ -578,7 +610,7 @@ print(length(unique(poe.df$plot_names)))
 print(head(unique(poe.df$plot_names)))
 ```
 
-We can see there is only one taxa assigned dark sulfur oxidation, and only three assigned predatory or exoparsitic. Therefore we will only focus on aerobic chemoheterotrophy, fermentation, and oxygenic photoautotrophy for the rest of our analysis. To analyze the latter functions we will first summarize their relative abundance data.
+To analyze these functions we will first summarize their relative abundance data.
 
 ```{r}
 ### aerobic chemoheterotrophy ###
@@ -679,10 +711,30 @@ plot.order = append(no.others, "Others")
 plot.order = unlist(plot.order)
 ## order dataframe by relative abundance
 poe.df$plot_names = factor(poe.df$plot_names, levels=c(plot.order))
+
+### dark sulfur oxidation ###
+## summarize the data
+ds_ox.sum = ddply(ds_ox.df, c("plot_names"), summarise, sum = sum(relative_abundance))
+## sort by relative abundance
+ds_ox.sorted = ds_ox.sum[order(-ds_ox.sum$sum),]
+## order by decreasing relative abundance
+ds_ox.df = ds_ox.df[order(-ds_ox.df$relative_abundance),]
+## get list of factors in order
+natural.genus.order = as.list(c(unique(ds_ox.df$plot_names)))
+## remove others from list #!#
+no.others=natural.genus.order[!natural.genus.order == 'Others']
+## add Others to end of list
+plot.order = append(no.others, "Others")
+## set plot_names levels
+plot.order = unlist(plot.order)
+## order dataframe by relative abundance
+ds_ox.df$plot_names = factor(ds_ox.df$plot_names, levels=c(plot.order))
+
 ```
 
 ```{r}
-ggplot(a_chem.all, aes(x=as.character(Row.names), y=as.numeric(relative_abundance), fill=as.factor(plot_names)))+
+## aerobic chemoheterotrophy
+a_chem.plot = ggplot(a_chem.all, aes(x=as.character(Row.names), y=as.numeric(relative_abundance), fill=as.factor(plot_names)))+
   geom_bar(stat = "identity")+
   guides(fill=guide_legend(ncol=2))+
   facet_grid(.~comparison_names, scales="free", space="free")+
@@ -694,9 +746,14 @@ ggplot(a_chem.all, aes(x=as.character(Row.names), y=as.numeric(relative_abundanc
         legend.text=element_text(size=6),
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
-  labs(y="Relative Abundance", x="Sample", fill="Taxa")
+  labs(y="Relative Abundance", x="Sample", fill="Taxa")+
+  ggtitle("Taxa assigned trait aerobic chemoheterotrophy")
 
-ggplot(ferm.all, aes(x=as.character(Row.names), y=as.numeric(relative_abundance), fill=as.factor(plot_names)))+
+
+ggsave("Taxa assigned trait aerobic chemoheterotrophy.png", plot = a_chem.plot, path = "figures/taxaplots", width = 20, height = 10)
+
+## fermentation
+ferm.plot = ggplot(ferm.all, aes(x=as.character(Row.names), y=as.numeric(relative_abundance), fill=as.factor(plot_names)))+
   geom_bar(stat = "identity")+
   guides(fill=guide_legend(ncol=2))+
   facet_grid(.~comparison_names, scales="free", space="free")+
@@ -708,9 +765,14 @@ ggplot(ferm.all, aes(x=as.character(Row.names), y=as.numeric(relative_abundance)
         legend.text=element_text(size=6),
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
-  labs(y="Relative Abundance", x="Sample", fill="Taxa")
+  labs(y="Relative Abundance", x="Sample", fill="Taxa")+
+  ggtitle("Taxa assigned trait fermentation")
 
-ggplot(o_pau.all, aes(x=as.character(Row.names), y=as.numeric(relative_abundance), fill=as.factor(plot_names)))+
+
+ggsave("Taxa assigned trait fermentation.png", plot = ferm.plot, path = "figures/taxaplots", width = 20, height = 10)
+
+## oxygenic photoautotrophy
+o_pau.plot = ggplot(o_pau.all, aes(x=as.character(Row.names), y=as.numeric(relative_abundance), fill=as.factor(plot_names)))+
   geom_bar(stat = "identity")+
   guides(fill=guide_legend(ncol=2))+
   facet_grid(.~comparison_names, scales="free", space="free")+
@@ -722,9 +784,14 @@ ggplot(o_pau.all, aes(x=as.character(Row.names), y=as.numeric(relative_abundance
         legend.text=element_text(size=6),
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
-  labs(y="Relative Abundance", x="Sample", fill="Taxa")
+  labs(y="Relative Abundance", x="Sample", fill="Taxa")+
+  ggtitle("Taxa assigned trait oxygenic photoautotrophy")
 
-ggplot(poe.df, aes(x=as.character(Row.names), y=as.numeric(relative_abundance), fill=as.factor(plot_names)))+
+
+ggsave("Taxa assigned trait oxygenic photoautotrophy.png", plot = o_pau.plot, path = "figures/taxaplots", width = 20, height = 10)
+
+## predatory or exoparasitic
+poe.plot = ggplot(poe.df, aes(x=as.character(Row.names), y=as.numeric(relative_abundance), fill=as.factor(plot_names)))+
   geom_bar(stat = "identity")+
   guides(fill=guide_legend(ncol=2))+
   facet_grid(.~comparison_names, scales="free", space="free")+
@@ -736,7 +803,32 @@ ggplot(poe.df, aes(x=as.character(Row.names), y=as.numeric(relative_abundance), 
         legend.text=element_text(size=6),
         axis.line = element_line(colour = "black"),
         axis.text.x = element_blank())+
-  labs(y="Relative Abundance", x="Sample", fill="Taxa")
+  labs(y="Relative Abundance", x="Sample", fill="Taxa")+
+  ggtitle("Taxa assigned trait predatory or exoparasitic")
 
+ggsave("Taxa assigned trait predatory or exoparasitic.png", plot = poe.plot, path = "figures/taxaplots", width = 20, height = 10)
+
+## dark sulfur oxidation
+ds_ox.plot = ggplot(ds_ox.df, aes(x=as.character(Row.names), y=as.numeric(relative_abundance), fill=as.factor(plot_names)))+
+  geom_bar(stat = "identity")+
+  guides(fill=guide_legend(ncol=2))+
+  facet_grid(.~comparison_names, scales="free", space="free")+
+  theme_bw()+
+  theme(panel.grid = element_blank(),strip.background = element_rect(fill="white"),
+        axis.text.y = element_text(size = 10, colour = "black"), 
+        axis.title = element_text(size=10,face="bold"),
+        strip.text = element_text(color="black", size=10),
+        legend.text=element_text(size=6),
+        axis.line = element_line(colour = "black"),
+        axis.text.x = element_blank())+
+  labs(y="Relative Abundance", x="Sample", fill="Taxa")+
+  ggtitle("Taxa assigned trait dark sulfur oxidation")
+
+ggsave("Taxa assigned trait dark sulfur oxidation.png", plot = ds_ox.plot, path = "figures/taxaplots", width = 20, height = 10)
 
 ```
+
+
+This gives the relevant taxa plots:
+
+<img src = "figures/taxaplots/Taxa assigned trait aerobic chemoheterotrophy.png" alt = "image" width = 450 height = auto> <img src = "figures/taxaplots/Taxa assigned trait dark sulfur oxidation.png" alt = "image" width = 450 height = auto> <img src = "figures/taxaplots/Taxa assigned trait oxygenic photoautotrophy.png" alt = "image" width = 450 height = auto> <img src = "figures/taxaplots/Taxa assigned trait fermentation.png" alt = "image" width = 450 height = auto> <img src = "figures/taxaplots/Taxa assigned trait predatory or exoparasitic.png" alt = "image" width = 450 height = auto> 

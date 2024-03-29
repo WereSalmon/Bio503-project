@@ -1,0 +1,11 @@
+genus,p,p.signif,p.adj,p.adj.signif,eco_function
+1,Laminaria,0.259,ns,0.259,ns,aerobic_chemoheterotrophy
+2,Saccharina,7e-06,****,1.4e-05,****,aerobic_chemoheterotrophy
+3,Laminaria,0.58,ns,1,ns,dark_sulfur_oxidation
+4,Saccharina,0.983,ns,1,ns,dark_sulfur_oxidation
+5,Laminaria,1.53e-06,****,3.06e-06,****,oxygenic_photoautotrophy
+6,Saccharina,0.00158,**,0.00158,**,oxygenic_photoautotrophy
+7,Laminaria,0.184,ns,0.368,ns,fermentation
+8,Saccharina,0.834,ns,0.834,ns,fermentation
+9,Laminaria,0.274,ns,0.548,ns,predatory_or_exoparasitic
+10,Saccharina,0.515,ns,0.548,ns,predatory_or_exoparasitic

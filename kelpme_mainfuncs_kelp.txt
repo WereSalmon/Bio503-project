@@ -1,0 +1,11 @@
+Region,p,p.signif,p.adj,p.adj.signif,eco_function
+1,BC,0.408,ns,0.788,ns,aerobic_chemoheterotrophy
+2,UK,0.394,ns,0.788,ns,aerobic_chemoheterotrophy
+3,BC,0.0399,*,0.0399,*,dark_sulfur_oxidation
+4,UK,0.000949,***,0.001898,**,dark_sulfur_oxidation
+5,BC,0.577,ns,0.577,ns,oxygenic_photoautotrophy
+6,UK,0.00737,**,0.01474,*,oxygenic_photoautotrophy
+7,BC,0.0134,*,0.0268,*,fermentation
+8,UK,0.419,ns,0.419,ns,fermentation
+9,BC,0.482,ns,0.482,ns,predatory_or_exoparasitic
+10,UK,0.0449,*,0.0898,ns,predatory_or_exoparasitic

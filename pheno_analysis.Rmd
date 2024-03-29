@@ -18,8 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Initialize necessary packages
 
 ```{r, message=FALSE}
-## start by loading necessary packages
-
+##loading necessary packages
 library(phyloseq)
 library(tidyverse)
 library(vegan)
@@ -203,7 +202,6 @@ metacols = ncol(func_table)
 ## Combine the metadata from the original phyloseq file with the new functional annotation data
 kelp_me_meta = as.data.frame(kelp_me_clean@sam_data)
 func_table = cbind(func_table, kelp_me_meta)
-
 func_table = subset(func_table, genus == "Laminaria" | genus == "Saccharina")
 ```
 
@@ -379,6 +377,7 @@ for(f in main.funcs){
   sig.test$eco_function = f
   sig_vals = rbind(sig_vals, sig.test)
 }
+write.table(sig_vals,"kelpme_mainfuncs_presence.txt", quote = FALSE, sep = ",")
 print(sig_vals)
 ```
 
@@ -409,7 +408,7 @@ for(f in main.funcs){
   sig.test$eco_function = f
   sig_vals = rbind(sig_vals, sig.test)
 }
-
+write.table(sig_vals,"kelpme_mainfuncs_kelp.txt", quote = FALSE, sep = ",")
 print(sig_vals)
 ```
 
@@ -430,7 +429,7 @@ for(f in main.funcs){
   sig.test$eco_function = f
   sig_vals = rbind(sig_vals, sig.test)
 }
-
+write.table(sig_vals,"kelpme_mainfuncs_region.txt", quote = FALSE, sep = ",")
 print(sig_vals)
 ```
 
